@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from typing_extensions import ParamSpec
 from collections import defaultdict
 from torch.utils._python_dispatch import TorchDispatchMode
+from torch._dynamo.utils import counters
 from math import prod
 from functools import wraps
 import warnings
@@ -751,6 +752,7 @@ class FlopCounterMode:
             flop_count = flop_count_func(*args, **kwargs, out_val=out)  # type: ignore[operator]
             for par in set(self.mod_tracker.parents):
                 self.flop_counts[par][func_packet] += flop_count
+            counters["inductor"]["flop_count"] += flop_count
 
         return out
 

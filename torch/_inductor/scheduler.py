@@ -838,15 +838,7 @@ class BaseSchedulerNode:
         except Exception:
             return 0
 
-        if isinstance(self, (FusedSchedulerNode, GroupedSchedulerNode)):
-            flops_est: int | None = sum(
-                filter(
-                    None,
-                    (node.estimate_flops() for node in self.get_nodes()),
-                )
-            )
-        else:
-            flops_est = self.estimate_flops()
+        flops_est = self.estimate_flops()
 
         if flops_est == 0 or flops_est is None:
             # no flops estimate, so fall back to memory estimate
@@ -1337,6 +1329,15 @@ class FusedSchedulerNode(BaseSchedulerNode):
             assert isinstance(node2, (SchedulerNode, FusedSchedulerNode))
         nodes = list(itertools.chain(node1.get_nodes(), node2.get_nodes()))
         return cls(node1.scheduler, nodes)
+
+    @cache_on_self
+    def estimate_flops(self) -> int | None:
+        # don't increment counters in fused methods so we don't double count
+        fps = list(filter(None, (node.estimate_flops() for node in self.get_nodes())))
+        if len(fps) == 0:
+            return None
+        ret = sum(fps)
+        return ret
 
     def reorder_loops_by_dep_pair(
         self, self_dep: MemoryDep, other_dep: MemoryDep
@@ -1883,6 +1884,15 @@ class GroupedSchedulerNode(BaseSchedulerNode):
         for node in self.snodes:
             result.extend(node.get_outputs())
         return result
+
+    @cache_on_self
+    def estimate_flops(self) -> int | None:
+        # don't increment counters in fused methods so we don't double count
+        fps = list(filter(None, (node.estimate_flops() for node in self.get_nodes())))
+        if len(fps) == 0:
+            return None
+        ret = sum(fps)
+        return ret
 
     def get_nodes(self) -> Sequence[BaseSchedulerNode]:
         return self.snodes
