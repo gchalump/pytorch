@@ -1333,7 +1333,16 @@ class FusedSchedulerNode(BaseSchedulerNode):
     @cache_on_self
     def estimate_flops(self) -> int | None:
         # don't increment counters in fused methods so we don't double count
-        fps = list(filter(None, (node.estimate_flops() for node in self.get_nodes())))
+        fps = list(
+            filter(
+                None,
+                (
+                    node.estimate_flops()
+                    for node in self.get_nodes()
+                    if node.is_template() or node.is_extern()
+                ),
+            )
+        )
         if len(fps) == 0:
             return None
         ret = sum(fps)
@@ -1888,7 +1897,16 @@ class GroupedSchedulerNode(BaseSchedulerNode):
     @cache_on_self
     def estimate_flops(self) -> int | None:
         # don't increment counters in fused methods so we don't double count
-        fps = list(filter(None, (node.estimate_flops() for node in self.get_nodes())))
+        fps = list(
+            filter(
+                None,
+                (
+                    node.estimate_flops()
+                    for node in self.get_nodes()
+                    if node.is_template() or node.is_extern()
+                ),
+            )
+        )
         if len(fps) == 0:
             return None
         ret = sum(fps)
